@@ -1,0 +1,19 @@
+{
+  "name": "skyjoboard",
+  "version": "1.0.0",
+  "description": "Créer en collaboration avec [Claude](https://claude.ai/).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alainranger/SkyJoBoard.git"
+  },
+  "author": "Alain Ranger",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alainranger/SkyJoBoard/issues"
+  },
+  "homepage": "https://github.com/alainranger/SkyJoBoard#readme"
+}
