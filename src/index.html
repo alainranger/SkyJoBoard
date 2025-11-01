@@ -478,9 +478,12 @@
             }
         }
 
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+
         // Initialiser le jeu au chargement
         initializeGame();
     </script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 
 </html>
