@@ -141,6 +141,8 @@
 							<input
 								type="text"
 								value={player.name}
+								onfocus={(e) => e.currentTarget.select()}
+								onmouseup={(e) => e.preventDefault()}
 								onchange={(e) =>
 									updatePlayerName(
 										playerIndex,
@@ -161,6 +163,8 @@
 									type="number"
 									class="score-input"
 									value={player.scores[roundIndex] || 0}
+									onfocus={(e) => e.currentTarget.select()}
+									onmouseup={(e) => e.preventDefault()}
 									onchange={(e) =>
 										updateScore(
 											playerIndex,

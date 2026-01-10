@@ -5,6 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"dev:ngrok": "node update-ngrok-url.js && vite dev",
+		"update:ngrok": "node update-ngrok-url.js",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
