@@ -5,19 +5,19 @@
 	}
 
 	let players = $state<Player[]>([
-		{ name: 'Joueur 1', scores: [0] },
-		{ name: 'Joueur 2', scores: [0] }
+		{ name: "Joueur 1", scores: [0] },
+		{ name: "Joueur 2", scores: [0] },
 	]);
 
 	let rounds = $state(1);
 	let gameOver = $state(false);
-	let winnerName = $state('');
+	let winnerName = $state("");
 
 	function addPlayer() {
 		if (players.length < 8) {
 			players.push({
 				name: `Joueur ${players.length + 1}`,
-				scores: new Array(rounds).fill(0)
+				scores: new Array(rounds).fill(0),
 			});
 		}
 	}
@@ -41,14 +41,31 @@
 		players[playerIndex].name = name;
 	}
 
-	function updateScore(playerIndex: number, roundIndex: number, value: string) {
+	function updateScore(
+		playerIndex: number,
+		roundIndex: number,
+		value: string,
+	) {
 		const scoreValue = parseInt(value) || 0;
 		players[playerIndex].scores[roundIndex] = scoreValue;
-		checkGameEnd();
 	}
 
 	function checkGameEnd() {
-		const totals = players.map((player) => player.scores.reduce((sum, score) => sum + score, 0));
+		// Vérifier si tous les scores ont été entrés (aucun score à 0 sauf si explicitement entré)
+		const allScoresEntered = players.every((player) =>
+			player.scores.every((score, index) => {
+				// On considère qu'un score est entré s'il n'est pas 0, ou si c'est la première manche
+				return score !== 0 || index === 0;
+			}),
+		);
+
+		if (!allScoresEntered) {
+			return; // Ne pas annoncer le gagnant si tous les scores ne sont pas entrés
+		}
+
+		const totals = players.map((player) =>
+			player.scores.reduce((sum, score) => sum + score, 0),
+		);
 		const maxScore = Math.max(...totals);
 
 		if (maxScore >= 100) {
@@ -59,25 +76,31 @@
 	}
 
 	function resetGame() {
-		if (confirm('Êtes-vous sûr de vouloir commencer une nouvelle partie ?')) {
+		if (
+			confirm("Êtes-vous sûr de vouloir commencer une nouvelle partie ?")
+		) {
 			players = [
-				{ name: 'Joueur 1', scores: [0] },
-				{ name: 'Joueur 2', scores: [0] }
+				{ name: "Joueur 1", scores: [0] },
+				{ name: "Joueur 2", scores: [0] },
 			];
 			rounds = 1;
 			gameOver = false;
-			winnerName = '';
+			winnerName = "";
 		}
 	}
 
 	let totals = $derived(
 		players.map((player) => ({
 			name: player.name,
-			total: player.scores.reduce((sum, score) => sum + score, 0)
-		}))
+			total: player.scores.reduce((sum, score) => sum + score, 0),
+		})),
 	);
 
-	let leader = $derived(totals.reduce((min, player) => (player.total < min.total ? player : min)));
+	let leader = $derived(
+		totals.reduce((min, player) =>
+			player.total < min.total ? player : min,
+		),
+	);
 
 	let lowestScore = $derived(leader.total);
 </script>
@@ -90,13 +113,22 @@
 
 	<div class="controls">
 		<button class="btn btn-primary" onclick={addPlayer}>+ Joueur</button>
-		<button class="btn btn-secondary" onclick={removePlayer}>- Joueur</button>
+		<button class="btn btn-secondary" onclick={removePlayer}
+			>- Joueur</button
+		>
 		<button class="btn btn-success" onclick={addRound}>+ Manche</button>
-		<button class="btn btn-danger" onclick={resetGame}>Nouvelle Partie</button>
+		<button class="btn btn-info" onclick={checkGameEnd}
+			>Vérifier le Gagnant</button
+		>
+		<button class="btn btn-danger" onclick={resetGame}
+			>Nouvelle Partie</button
+		>
 	</div>
 
 	{#if gameOver}
-		<div class="winner-announcement">🏆 {winnerName} remporte la partie !</div>
+		<div class="winner-announcement">
+			🏆 {winnerName} remporte la partie !
+		</div>
 	{/if}
 
 	<div class="scoresheet">
@@ -109,7 +141,11 @@
 							<input
 								type="text"
 								value={player.name}
-								onchange={(e) => updatePlayerName(playerIndex, e.currentTarget.value)}
+								onchange={(e) =>
+									updatePlayerName(
+										playerIndex,
+										e.currentTarget.value,
+									)}
 							/>
 						</th>
 					{/each}
@@ -125,7 +161,12 @@
 									type="number"
 									class="score-input"
 									value={player.scores[roundIndex] || 0}
-									onchange={(e) => updateScore(playerIndex, roundIndex, e.currentTarget.value)}
+									onchange={(e) =>
+										updateScore(
+											playerIndex,
+											roundIndex,
+											e.currentTarget.value,
+										)}
 									placeholder="0"
 								/>
 							</td>
@@ -170,7 +211,8 @@
 	}
 
 	:global(body) {
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		font-family:
+			-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 		min-height: 100vh;
 		padding: 10px;
@@ -239,8 +281,12 @@
 		background: #28a745;
 		color: white;
 	}
+	-info {
+		background: #17a2b8;
+		color: white;
+	}
 
-	.btn:hover {
+	.btn .btn:hover {
 		transform: translateY(-2px);
 		box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 	}
