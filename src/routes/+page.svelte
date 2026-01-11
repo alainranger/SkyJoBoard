@@ -10,6 +10,7 @@
 	]);
 
 	let rounds = $state(1);
+	let currentRound = $state(0); // Index de la manche courante (0-based)
 	let gameOver = $state(false);
 	let winnerName = $state("");
 
@@ -28,12 +29,39 @@
 		}
 	}
 
-	function addRound() {
-		if (rounds < 20) {
-			rounds++;
-			players.forEach((player) => {
-				player.scores.push(0);
-			});
+	function endRound() {
+		// Vérifier si tous les scores de la manche courante ont été entrés
+		const allScoresEntered = players.every(
+			(player) => player.scores[currentRound] !== 0 || currentRound === 0,
+		);
+
+		if (!allScoresEntered && currentRound > 0) {
+			alert(
+				"Veuillez entrer tous les scores avant de terminer la manche.",
+			);
+			return;
+		}
+
+		// Calculer les totaux
+		const totals = players.map((player) =>
+			player.scores.reduce((sum, score) => sum + score, 0),
+		);
+		const maxScore = Math.max(...totals);
+
+		// Vérifier si quelqu'un a atteint ou dépassé 100 points
+		if (maxScore >= 100) {
+			gameOver = true;
+			const winnerIndex = totals.indexOf(Math.min(...totals));
+			winnerName = players[winnerIndex].name;
+		} else {
+			// Ajouter une nouvelle manche
+			if (rounds < 20) {
+				rounds++;
+				currentRound++;
+				players.forEach((player) => {
+					player.scores.push(0);
+				});
+			}
 		}
 	}
 
@@ -50,31 +78,6 @@
 		players[playerIndex].scores[roundIndex] = scoreValue;
 	}
 
-	function checkGameEnd() {
-		// Vérifier si tous les scores ont été entrés (aucun score à 0 sauf si explicitement entré)
-		const allScoresEntered = players.every((player) =>
-			player.scores.every((score, index) => {
-				// On considère qu'un score est entré s'il n'est pas 0, ou si c'est la première manche
-				return score !== 0 || index === 0;
-			}),
-		);
-
-		if (!allScoresEntered) {
-			return; // Ne pas annoncer le gagnant si tous les scores ne sont pas entrés
-		}
-
-		const totals = players.map((player) =>
-			player.scores.reduce((sum, score) => sum + score, 0),
-		);
-		const maxScore = Math.max(...totals);
-
-		if (maxScore >= 100) {
-			gameOver = true;
-			const winnerIndex = totals.indexOf(Math.min(...totals));
-			winnerName = players[winnerIndex].name;
-		}
-	}
-
 	function resetGame() {
 		if (
 			confirm("Êtes-vous sûr de vouloir commencer une nouvelle partie ?")
@@ -84,6 +87,7 @@
 				{ name: "Joueur 2", scores: [0] },
 			];
 			rounds = 1;
+			currentRound = 0;
 			gameOver = false;
 			winnerName = "";
 		}
@@ -116,9 +120,8 @@
 		<button class="btn btn-secondary" onclick={removePlayer}
 			>- Joueur</button
 		>
-		<button class="btn btn-success" onclick={addRound}>+ Manche</button>
-		<button class="btn btn-info" onclick={checkGameEnd}
-			>Vérifier le Gagnant</button
+		<button class="btn btn-success" onclick={endRound} disabled={gameOver}
+			>Fin de manche</button
 		>
 		<button class="btn btn-danger" onclick={resetGame}
 			>Nouvelle Partie</button
@@ -155,6 +158,8 @@
 			</thead>
 			<tbody>
 				{#each Array(rounds) as _, roundIndex (roundIndex)}
+					{@const isEditable =
+						roundIndex === currentRound && !gameOver}
 					<tr>
 						<td class="round-header">M{roundIndex + 1}</td>
 						{#each players as player, playerIndex (playerIndex)}
@@ -163,8 +168,16 @@
 									type="number"
 									class="score-input"
 									value={player.scores[roundIndex] || 0}
-									onfocus={(e) => e.currentTarget.select()}
-									onmouseup={(e) => e.preventDefault()}
+									onfocus={(e) => {
+										if (isEditable) {
+											e.currentTarget.select();
+										}
+									}}
+									onmouseup={(e) => {
+										if (isEditable) {
+											e.preventDefault();
+										}
+									}}
 									onchange={(e) =>
 										updateScore(
 											playerIndex,
@@ -172,6 +185,8 @@
 											e.currentTarget.value,
 										)}
 									placeholder="0"
+									readonly={!isEditable}
+									class:readonly={!isEditable}
 								/>
 							</td>
 						{/each}
@@ -376,6 +391,17 @@
 		outline: none;
 		background: #fff3cd;
 		box-shadow: 0 0 0 2px #ffc107;
+	}
+
+	.score-input.readonly {
+		background: #f8f9fa;
+		color: #6c757d;
+		cursor: not-allowed;
+	}
+
+	.score-input.readonly:focus {
+		background: #f8f9fa;
+		box-shadow: none;
 	}
 
 	.total-column {
