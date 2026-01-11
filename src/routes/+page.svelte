@@ -107,6 +107,13 @@
 	);
 
 	let lowestScore = $derived(leader.total);
+
+	// Vérifier si au moins un score a été entré
+	let hasScores = $derived(
+		players.some((player) =>
+			player.scores.some((score, index) => score !== 0 || index > 0),
+		),
+	);
 </script>
 
 <div class="container" class:game-over={gameOver}>
@@ -212,11 +219,11 @@
 			<div class="stat-label">Joueurs</div>
 		</div>
 		<div class="stat-item">
-			<div class="stat-value">{leader.name}</div>
+			<div class="stat-value">{hasScores ? leader.name : "-"}</div>
 			<div class="stat-label">En tête</div>
 		</div>
 		<div class="stat-item">
-			<div class="stat-value">{lowestScore}</div>
+			<div class="stat-value">{hasScores ? lowestScore : "-"}</div>
 			<div class="stat-label">Meilleur Score</div>
 		</div>
 	</div>
