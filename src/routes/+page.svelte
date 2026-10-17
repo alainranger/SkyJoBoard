@@ -1,119 +1,22 @@
 <script lang="ts">
-	interface Player {
-		name: string;
-		scores: number[];
-	}
+	import {
+		gameStore,
+		totals,
+		leader,
+		lowestScore,
+		hasScores,
+	} from "$lib/stores/gameStore";
 
-	let players = $state<Player[]>([
-		{ name: "Joueur 1", scores: [0] },
-		{ name: "Joueur 2", scores: [0] },
-	]);
+	// Destructurer les valeurs du store
+	$: ({ players, rounds, currentRound, gameOver, winnerName } = $gameStore);
 
-	let rounds = $state(1);
-	let currentRound = $state(0); // Index de la manche courante (0-based)
-	let gameOver = $state(false);
-	let winnerName = $state("");
-
-	function addPlayer() {
-		if (players.length < 8) {
-			players.push({
-				name: `Joueur ${players.length + 1}`,
-				scores: new Array(rounds).fill(0),
-			});
-		}
-	}
-
-	function removePlayer() {
-		if (players.length > 2) {
-			players.pop();
-		}
-	}
-
-	function endRound() {
-		// Vérifier si tous les scores de la manche courante ont été entrés
-		const allScoresEntered = players.every(
-			(player) => player.scores[currentRound] !== 0 || currentRound === 0,
-		);
-
-		if (!allScoresEntered && currentRound > 0) {
-			alert(
-				"Veuillez entrer tous les scores avant de terminer la manche.",
-			);
-			return;
-		}
-
-		// Calculer les totaux
-		const totals = players.map((player) =>
-			player.scores.reduce((sum, score) => sum + score, 0),
-		);
-		const maxScore = Math.max(...totals);
-
-		// Vérifier si quelqu'un a atteint ou dépassé 100 points
-		if (maxScore >= 100) {
-			gameOver = true;
-			const winnerIndex = totals.indexOf(Math.min(...totals));
-			winnerName = players[winnerIndex].name;
-		} else {
-			// Ajouter une nouvelle manche
-			if (rounds < 20) {
-				rounds++;
-				currentRound++;
-				players.forEach((player) => {
-					player.scores.push(0);
-				});
-			}
-		}
-	}
-
-	function updatePlayerName(playerIndex: number, name: string) {
-		players[playerIndex].name = name;
-	}
-
-	function updateScore(
-		playerIndex: number,
-		roundIndex: number,
-		value: string,
-	) {
-		const scoreValue = parseInt(value) || 0;
-		players[playerIndex].scores[roundIndex] = scoreValue;
-	}
-
-	function resetGame() {
+	function handleResetGame() {
 		if (
 			confirm("Êtes-vous sûr de vouloir commencer une nouvelle partie ?")
 		) {
-			players = [
-				{ name: "Joueur 1", scores: [0] },
-				{ name: "Joueur 2", scores: [0] },
-			];
-			rounds = 1;
-			currentRound = 0;
-			gameOver = false;
-			winnerName = "";
+			gameStore.reset();
 		}
 	}
-
-	let totals = $derived(
-		players.map((player) => ({
-			name: player.name,
-			total: player.scores.reduce((sum, score) => sum + score, 0),
-		})),
-	);
-
-	let leader = $derived(
-		totals.reduce((min, player) =>
-			player.total < min.total ? player : min,
-		),
-	);
-
-	let lowestScore = $derived(leader.total);
-
-	// Vérifier si au moins un score a été entré
-	let hasScores = $derived(
-		players.some((player) =>
-			player.scores.some((score, index) => score !== 0 || index > 0),
-		),
-	);
 </script>
 
 <div class="container" class:game-over={gameOver}>
@@ -123,14 +26,22 @@
 	</div>
 
 	<div class="controls">
-		<button class="btn btn-primary" onclick={addPlayer}>+ Joueur</button>
-		<button class="btn btn-secondary" onclick={removePlayer}
-			>- Joueur</button
+		<button
+			class="btn btn-primary"
+			onclick={gameStore.addPlayer}
+			disabled={$hasScores}>+ Joueur</button
 		>
-		<button class="btn btn-success" onclick={endRound} disabled={gameOver}
-			>Fin de manche</button
+		<button
+			class="btn btn-secondary"
+			onclick={gameStore.removePlayer}
+			disabled={$hasScores}>- Joueur</button
 		>
-		<button class="btn btn-danger" onclick={resetGame}
+		<button
+			class="btn btn-success"
+			onclick={gameStore.endRound}
+			disabled={gameOver}>Fin de manche</button
+		>
+		<button class="btn btn-danger" onclick={handleResetGame}
 			>Nouvelle Partie</button
 		>
 	</div>
@@ -154,7 +65,7 @@
 								onfocus={(e) => e.currentTarget.select()}
 								onmouseup={(e) => e.preventDefault()}
 								onchange={(e) =>
-									updatePlayerName(
+									gameStore.updatePlayerName(
 										playerIndex,
 										e.currentTarget.value,
 									)}
@@ -174,7 +85,7 @@
 								<input
 									type="number"
 									class="score-input"
-									value={player.scores[roundIndex] || 0}
+									value={player.scores[roundIndex] ?? ""}
 									onfocus={(e) => {
 										if (isEditable) {
 											e.currentTarget.select();
@@ -186,7 +97,7 @@
 										}
 									}}
 									onchange={(e) =>
-										updateScore(
+										gameStore.updateScore(
 											playerIndex,
 											roundIndex,
 											e.currentTarget.value,
@@ -201,7 +112,7 @@
 				{/each}
 				<tr>
 					<td class="total-column"><strong>Total</strong></td>
-					{#each totals as { total }, index (index)}
+					{#each $totals as { total }, index (index)}
 						<td class="total-column">{total}</td>
 					{/each}
 				</tr>
@@ -219,11 +130,11 @@
 			<div class="stat-label">Joueurs</div>
 		</div>
 		<div class="stat-item">
-			<div class="stat-value">{hasScores ? leader.name : "-"}</div>
+			<div class="stat-value">{$hasScores ? $leader.name : "-"}</div>
 			<div class="stat-label">En tête</div>
 		</div>
 		<div class="stat-item">
-			<div class="stat-value">{hasScores ? lowestScore : "-"}</div>
+			<div class="stat-value">{$hasScores ? $lowestScore : "-"}</div>
 			<div class="stat-label">Meilleur Score</div>
 		</div>
 	</div>
@@ -307,12 +218,8 @@
 		background: #28a745;
 		color: white;
 	}
-	-info {
-		background: #17a2b8;
-		color: white;
-	}
 
-	.btn .btn:hover {
+	.btn:hover {
 		transform: translateY(-2px);
 		box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 	}
